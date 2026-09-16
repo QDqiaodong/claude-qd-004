@@ -25,7 +25,9 @@ export const stallApi = {
 export const cowApi = {
   list: (params) => http.get('/cows', { params }),
   create: (data) => http.post('/cows', data),
-  update: (id, data) => http.put(`/cows/${id}`, data)
+  update: (id, data) => http.put(`/cows/${id}`, data),
+  // 登记淘汰：后端在同一笔事务里置「已淘汰/离栏」并摘掉牛舍名额
+  cull: (id) => http.post(`/cows/${id}/cull`)
 }
 
 export const shiftApi = {

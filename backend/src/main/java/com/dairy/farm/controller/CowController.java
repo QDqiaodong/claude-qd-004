@@ -32,4 +32,10 @@ public class CowController {
     public Cow update(@PathVariable Long id, @RequestBody Cow input) {
         return service.update(id, input);
     }
+
+    /** 登记淘汰：同事务内置「已淘汰 / 离栏」并摘掉牛舍名额，不分两步做。 */
+    @PostMapping("/{id}/cull")
+    public Cow cull(@PathVariable Long id) {
+        return service.cull(id);
+    }
 }

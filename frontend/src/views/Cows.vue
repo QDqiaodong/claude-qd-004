@@ -38,9 +38,13 @@
           <el-tag :type="row.status === '在栏' ? 'success' : 'info'">{{ row.status }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120">
+      <el-table-column label="操作" width="170">
         <template #default="{ row }">
           <el-button link type="primary" @click="openCow(row)">调整</el-button>
+          <el-button v-if="row.lactation !== '已淘汰'" link type="danger" :loading="cullingId === row.id" @click="confirmCull(row)">
+            登记淘汰
+          </el-button>
+          <span v-else style="color:#909399">已封档</span>
         </template>
       </el-table-column>
     </el-table>
@@ -53,12 +57,16 @@
         <el-form-item label="昵称"><el-input v-model="form.nickname" /></el-form-item>
         <el-form-item label="品种"><el-input v-model="form.breed" /></el-form-item>
         <el-form-item label="泌乳状态">
-          <el-select v-model="form.lactation" style="width:100%">
-            <el-option v-for="l in lactations" :key="l" :label="l" :value="l" />
+          <el-select v-model="form.lactation" style="width:100%" :disabled="form.lactation === '已淘汰'">
+            <el-option v-for="l in editableLactations" :key="l" :label="l" :value="l" />
           </el-select>
+          <div v-if="form.lactation === '已淘汰'" style="color:#909399;font-size:12px;line-height:1.4">
+            已淘汰封档：不能改回泌乳状态。
+          </div>
         </el-form-item>
         <el-form-item label="所在牛舍">
-          <el-select v-model="form.barnId" clearable placeholder="离栏可以不选" style="width:100%">
+          <el-select v-model="form.barnId" clearable placeholder="离栏可以不选" style="width:100%"
+                     :disabled="form.lactation === '已淘汰'">
             <el-option
               v-for="b in usableBarns"
               :key="b.id"
@@ -66,9 +74,12 @@
               :value="b.id"
             />
           </el-select>
+          <div v-if="form.lactation === '已淘汰'" style="color:#909399;font-size:12px;line-height:1.4">
+            淘汰时已从牛舍名额中摘除，不能再分回任何一间舍。
+          </div>
         </el-form-item>
         <el-form-item label="在栏状态">
-          <el-select v-model="form.status" style="width:100%">
+          <el-select v-model="form.status" style="width:100%" :disabled="form.lactation === '已淘汰'">
             <el-option label="在栏" value="在栏" />
             <el-option label="离栏" value="离栏" />
           </el-select>
@@ -84,14 +95,17 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { barnApi, cowApi } from '../api'
 
+// 查询用完整泌乳状态；普通编辑表单里不含「已淘汰」——淘汰只能走下面的【登记淘汰】
 const lactations = ['泌乳中', '干奶期', '待产', '已淘汰']
+const editableLactations = ['泌乳中', '干奶期', '待产']
 
 const barns = ref([])
 const rows = ref([])
 const loading = ref(false)
+const cullingId = ref(null)
 const query = reactive({ barnId: null, lactation: '', status: '', keyword: '' })
 
 const visible = ref(false)
@@ -116,6 +130,32 @@ const load = async () => {
     ElMessage.error(e.message)
   } finally {
     loading.value = false
+  }
+}
+
+// 登记淘汰：改状态和腾名额是一笔账，后端在同一事务里置「已淘汰/离栏」并把牛舍名额摘掉，
+// 不会出现淘汰了还占着名额、下一头进不来的情况。
+const confirmCull = async (row) => {
+  const inBarn = row.barnId ? `「${barnName(row.barnId)}」的一个名额将同时腾出` : '它名下已无牛舍名额'
+  try {
+    await ElMessageBox.confirm(
+      `确定登记耳号 ${row.earTag}（${row.nickname || '未起名'}）淘汰吗？\n` +
+      `确认后${inBarn}；这头牛不能再分回任何牛舍，这个耳号也不能再拿来新建占名额的档案。`,
+      '登记淘汰（同时腾出牛舍名额）',
+      { type: 'warning', confirmButtonText: '登记淘汰', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  cullingId.value = row.id
+  try {
+    await cowApi.cull(row.id)
+    ElMessage.success('已登记淘汰，牛舍名额已腾出')
+    await load()
+  } catch (e) {
+    ElMessage.error(e.message)
+  } finally {
+    cullingId.value = null
   }
 }
 
