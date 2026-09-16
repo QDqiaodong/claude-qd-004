@@ -76,6 +76,22 @@ CREATE TABLE IF NOT EXISTS feed_issue (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 原奶抽检台账：一条流水要么是抽检（体细胞数 + 结论），要么是处置。
+-- 只能挂在已收班（已完成）的班次上，收班公斤数不动。
+CREATE TABLE IF NOT EXISTS milk_test (
+  id BIGINT NOT NULL AUTO_INCREMENT,
+  shift_id BIGINT NOT NULL,
+  record_type VARCHAR(16) NOT NULL,
+  somatic_cells BIGINT NULL,
+  result VARCHAR(8) NULL,
+  disposition VARCHAR(8) NULL,
+  operator VARCHAR(32) NULL,
+  remark VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL,
+  PRIMARY KEY (id),
+  KEY idx_milk_test_shift (shift_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT IGNORE INTO barn (id, code, name, kind, capacity, status) VALUES
   (1, 'BN-01', '产奶一舍', '产奶舍', 60, '在用'),
   (2, 'BN-02', '产奶二舍', '产奶舍', 60, '在用'),
@@ -122,3 +138,8 @@ INSERT IGNORE INTO feed_issue (id, barn_id, feed_id, qty, kind, operator, create
   (3, 2, 2, 500, '领用', '李师傅', NOW()),
   (4, 1, 2, 200, '领用', '王师傅', NOW()),
   (5, 4, 5, 2,   '领用', '赵师傅', NOW());
+
+INSERT IGNORE INTO milk_test (id, shift_id, record_type, somatic_cells, result, disposition, operator, remark, created_at) VALUES
+  (1, 1, '抽检', 180000,  '合格',   NULL, '化验室', '体细胞正常，结案',      NOW()),
+  (2, 2, '抽检', 620000,  '不合格', NULL, '化验室', '体细胞超标',            NOW()),
+  (3, 2, '处置', NULL,    NULL,     '扣留', '化验室', '先扣留，等复检',       NOW());

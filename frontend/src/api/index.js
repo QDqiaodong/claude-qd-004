@@ -46,4 +46,10 @@ export const issueApi = {
   create: (data) => http.post('/feed-issues', data)
 }
 
+export const milkTestApi = {
+  list: (shiftId) => http.get('/milk-tests', { params: shiftId ? { shiftId } : {} }),
+  sampling: (data) => http.post('/milk-tests/samplings', data),
+  disposition: (data) => http.post('/milk-tests/dispositions', data)
+}
+
 export default http

@@ -6,6 +6,7 @@
         <el-menu-item index="/barns">牛舍与挤奶位</el-menu-item>
         <el-menu-item index="/cows">奶牛档案</el-menu-item>
         <el-menu-item index="/shifts">挤奶班次</el-menu-item>
+        <el-menu-item index="/milk-tests">原奶抽检</el-menu-item>
         <el-menu-item index="/feeds">饲料领用</el-menu-item>
       </el-menu>
     </el-header>

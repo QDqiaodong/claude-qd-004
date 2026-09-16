@@ -48,6 +48,7 @@
             type="danger"
             @click="cancel(row)"
           >取消</el-button>
+          <el-button v-if="row.status === '已完成'" link type="primary" @click="goMilkTest(row)">去抽检</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -112,8 +113,11 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { barnApi, cowApi, shiftApi, stallApi } from '../api'
+
+const router = useRouter()
 
 const statuses = ['待开挤', '挤奶中', '已完成', '已取消']
 
@@ -225,6 +229,10 @@ const cancel = async (row) => {
     return
   }
   advance(row, 'cancel')
+}
+
+const goMilkTest = (row) => {
+  router.push({ path: '/milk-tests', query: { shiftId: row.id, date: row.milkingDate } })
 }
 
 onMounted(async () => {

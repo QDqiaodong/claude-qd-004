@@ -62,7 +62,22 @@ docker compose down -v    # 连数据卷一起删，下次启动重新灌种子�
 - 页面：挤奶班次（`/shifts`）
 - 接口：`GET/POST /api/shifts`、`POST /api/shifts/{id}/advance?action=&milkKg=`
 
-### 4. 饲料领用与库存（`feed` / `feed_issue`）
+### 4. 原奶抽检台账（`milk_test`）
+
+化验室对**已收班（已完成）**的班次做原奶抽检，收班登记的产奶公斤数不许改少，
+抽检流程一律不动公斤数。一条流水要么是「抽检」（记体细胞数和合格/不合格结论），
+要么是「处置」（扣留 / 复检 / 倒掉）。
+
+- 抽检只能挂在已收班的班次上；没抽过的班次可抽，合格直接结案；
+- 抽检不合格必须先留处置，没处置不能给同一班次再插一条抽检；
+- 处置选「扣留 / 倒掉」即结案，选「复检」才允许再插一条抽检；
+- 同一班次并发插两条抽检时，先在数据库落下的那条留下，后到的被台账现状拦下；
+- **按场长规矩**：不合格只在班次上留处置，不挡下一班排班（开下一班不查抽检结果）。
+
+- 页面：原奶抽检（`/milk-tests`）
+- 接口：`GET /api/milk-tests?shiftId=`、`POST /api/milk-tests/samplings`、`POST /api/milk-tests/dispositions`
+
+### 5. 饲料领用与库存（`feed` / `feed_issue`）
 
 饲料编号 `FD-xxxx` 唯一，带库存、单位与预警线。领料只能对 `在用` 的牛舍做，库存不够要拦；
 退料不能超过这个牛舍在这件饲料上净领的数量；停用的饲料不能再领。
@@ -77,9 +92,9 @@ backend/src/main/java/com/dairy/farm/
 ├── config/       CORS 配置
 ├── controller/   REST 入口
 ├── dto/          BizException + 统一错误响应
-├── entity/       6 张业务表
+├── entity/       7 张业务表
 ├── repository/   Spring Data JPA
-└── service/      业务规则（编号唯一、时段占用、状态机、容量与库存）
+└── service/      业务规则（编号唯一、时段占用、状态机、容量与库存、抽检台账）
 backend/src/main/resources/schema.sql   建表 + 种子数据（挂进 MySQL initdb）
 frontend/src/views/                     4 个业务页面
 ```
